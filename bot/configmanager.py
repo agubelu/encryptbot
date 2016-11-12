@@ -17,7 +17,7 @@ def generateDomainConfigFile(domain):
         new_file.append("\n")
         new_file.append("# Domain-specific overrides\n")
         new_file.append("\n")
-        new_file += ["#" + option for option in content[6:] if option[0] != "#" and option[0] != "\n"]
+        new_file += ["# " + option for option in content[6:] if option[0] != "#" and option[0] != "\n"]
         
         file = open(domain + "/domain.cfg", "w")
         file.writelines(new_file)

@@ -1,8 +1,9 @@
-import sys, os, shutil
+import sys, shutil
 from configmanager import generateDomainConfigFile
+from common_utils import *
 
-workingFolder = os.path.dirname(os.path.realpath(__file__))
-domainsFolder = workingFolder + "/../encryptbot_domains"
+workingFolder = getWorkingFolder()
+domainsFolder = getDomainsFolder()
 
 def showDefaultMessage(flags, params):
     print("Use \"encryptbot.py help\" to get help.")
@@ -24,30 +25,30 @@ def displayHelp(flags, params):
     print("-f - Force certificate retrieval ignoring expiry checks (be wary of rate limits)")
 
 def checkForUpdates(flags, params):
-    pass
+    pass #TODO
 
 def getCertificates(flags, params):
-    pass
+    pass #TODO
 
 def revokeCertificates(flags, params):
-    pass
+    pass #TODO
 
 def createDomainFolder(flags, params):
     for domain in params:
-        os.mkdir(domainsFolder + "/" + domain)
-        generateDomainConfigFile(domainsFolder + "/" + domain)
+        os.mkdir(getDomainFolder(domain))
+        generateDomainConfigFile(getDomainFolder(domain))
         print("Created domain " + domain)
 
 #####################################################################################################
 
 # Generate the domains folder if it doesn't exist yet
-if not os.path.isdir(domainsFolder):
+if not os.path.exists(domainsFolder):
     print("encryptbot_domains folder not found, creating a new one with default configuration")
     os.mkdir(domainsFolder)
 
 # If the configuration file is missing, generate a new one
-if not os.path.exists(domainsFolder + "/common.cfg"):
-    shutil.copy(workingFolder + "/default_config.cfg", domainsFolder + "/common.cfg")
+if not os.path.exists(domainsFolder + "common.cfg"):
+    shutil.copy(workingFolder + "default_config.cfg", domainsFolder + "common.cfg")
     
 
 # Loop through the domain folders and generate the config file if it isn't there
@@ -57,7 +58,7 @@ for domain in [d[0] for d in os.walk(domainsFolder)][1:]:
 
 # Handle the command
 if len(sys.argv) < 2:
-    showDefaultMessage()
+    showDefaultMessage(None, None)
     sys.exit(0)
     
 command = sys.argv[1].lower()
