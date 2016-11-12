@@ -34,7 +34,8 @@ def createDomainFolder():
 
 #####################################################################################################
 
-domainsFolder = "../encryptbot_domains"
+workingFolder = os.path.dirname(os.path.realpath(__file__))
+domainsFolder = workingFolder + "/../encryptbot_domains"
 
 # Generate the domains folder if it doesn't exist yet
 if not os.path.isdir(domainsFolder):
@@ -43,7 +44,7 @@ if not os.path.isdir(domainsFolder):
 
 # If the configuration file is missing, generate a new one
 if not os.path.exists(domainsFolder + "/common.cfg"):
-    shutil.copy("default_config.cfg", domainsFolder + "/common.cfg")
+    shutil.copy(workingFolder + "/default_config.cfg", domainsFolder + "/common.cfg")
     
 
 # Loop through the domain folders and generate the config file if it isn't there
