@@ -1,5 +1,8 @@
 # Created by https://www.gitignore.io/api/python,eclipse
 
+encryptbot_domains/
+bot/__pycache__/
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
