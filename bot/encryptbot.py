@@ -42,7 +42,7 @@ def getCertificates(flags, params):
             print("Domain %s is not found, skipping..." % dom)
             continue
         
-        retrieveCertificate(dom)
+        retrieveCertificate(dom, flags)
 
 def revokeCertificates(flags, params):
     pass #TODO
@@ -60,7 +60,7 @@ def createDomainFolder(flags, params):
 
 # Generate the domains folder if it doesn't exist yet
 if not os.path.exists(domainsFolder):
-    print("encryptbot_domains folder not found, creating a new one with default configuration")
+    print("domains folder not found, creating a new one with default configuration")
     os.mkdir(domainsFolder)
 
 # If the configuration file is missing, generate a new one
