@@ -5,11 +5,6 @@ from common_utils import *
 workingFolder = getWorkingFolder()
 domainsFolder = getDomainsFolder()
 
-####################################### TEST ZONE #######################################
-print(getDomainConfig("pollas"))
-#########################################################################################
-
-
 def showDefaultMessage(flags, params):
     print("Use \"encryptbot.py help\" to get help.")
     
@@ -40,9 +35,12 @@ def revokeCertificates(flags, params):
 
 def createDomainFolder(flags, params):
     for domain in params:
-        os.mkdir(getDomainFolder(domain))
-        generateDomainConfigFile(getDomainFolder(domain))
-        print("Created domain " + domain)
+        if not os.path.exists(getDomainFolder(domain)):
+            os.mkdir(getDomainFolder(domain))
+            generateDomainConfigFile(getDomainFolder(domain))
+            print("Created domain " + domain)
+        else:
+            print("Domain %s already exists, skipping" % domain)
 
 #####################################################################################################
 
