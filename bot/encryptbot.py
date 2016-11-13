@@ -1,6 +1,7 @@
 import sys, shutil
 from configmanager import *
 from common_utils import *
+from get_certs import retrieveCertificate
 
 workingFolder = getWorkingFolder()
 domainsFolder = getDomainsFolder()
@@ -16,7 +17,8 @@ def displayHelp(flags, params):
     print("  create-domain - Creates a new domain to be managed by encryptbot (use before get-certs and revoke-certs)")
     print("      Example: encryptbot.py create-domain yourdomain1.com yourdomain2.net")
     print("  get-certs     - Obtains certificates for the domains specified in [parameters]")
-    print("      Example: encryptbot.py get-certs -f yourdomain1.com yourdomain2.net")
+    print("      Example: encryptbot.py get-certs yourdomain1.com yourdomain2.net")
+    print("      Example: encryptbot.py get-certs -f yourdomain1.com")
     print("      Example: encryptbot.py get-certs -a")
     print("  revoke-certs  - Revokes a domain certificate")
     print("      Example: encryptbot.py revoke-certs yourdomain1.com")
@@ -28,7 +30,19 @@ def checkForUpdates(flags, params):
     pass #TODO
 
 def getCertificates(flags, params):
-    pass #TODO
+    registeredDomains = next(os.walk(domainsFolder))[1]
+    
+    if "-a" in flags:
+        domains = registeredDomains
+    else:
+        domains = params
+        
+    for dom in domains:
+        if dom not in registeredDomains:
+            print("Domain %s is not found, skipping..." % dom)
+            continue
+        
+        retrieveCertificate(dom)
 
 def revokeCertificates(flags, params):
     pass #TODO

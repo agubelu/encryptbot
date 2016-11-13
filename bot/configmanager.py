@@ -1,4 +1,4 @@
-from common_utils import getWorkingFolder, getDomainsFolder
+from common_utils import getWorkingFolder, getDomainsFolder, getDomainFolder
 import re
 from codecs import open
 
@@ -35,7 +35,7 @@ def getGlobalConfig():
             
 def getDomainConfig(domainName):
     res = getGlobalConfig()
-    with open(getDomainsFolder() + domainName + "/domain.cfg", "r", "utf-8") as config:
+    with open(getDomainFolder(domainName) + "domain.cfg", "r", "utf-8") as config:
         for line in [l for l in config.readlines() if l[0] != "#" and l[0] != "\n"]:
             matches = re.match("\s*(.*?)\s*=\s*\"(.*)\"", line)
             key = matches.group(1)
