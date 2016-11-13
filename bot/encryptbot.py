@@ -1,9 +1,14 @@
 import sys, shutil
-from configmanager import generateDomainConfigFile
+from configmanager import *
 from common_utils import *
 
 workingFolder = getWorkingFolder()
 domainsFolder = getDomainsFolder()
+
+####################################### TEST ZONE #######################################
+print(getDomainConfig("pollas"))
+#########################################################################################
+
 
 def showDefaultMessage(flags, params):
     print("Use \"encryptbot.py help\" to get help.")
@@ -11,18 +16,18 @@ def showDefaultMessage(flags, params):
 def displayHelp(flags, params):
     print("Usage: encryptbot [command] [flags] [parameters]")
     print("\nAvailable commands:")
-    print("help          - Displays this information")
-    print("update        - Checks if a new version of encryptbot is available and updates if so")
-    print("create-domain - Creates a new domain to be managed by encryptbot (use before get-certs and revoke-certs)")
-    print("    Example: encryptbot.py create-domain yourdomain1.com yourdomain2.net")
-    print("get-certs     - Obtains certificates for the domains specified in [parameters]")
-    print("    Example: encryptbot.py get-certs -f yourdomain1.com yourdomain2.net")
-    print("    Example: encryptbot.py get-certs -a")
-    print("revoke-certs  - Revokes a domain certificate")
-    print("    Example: encryptbot.py revoke-certs yourdomain1.com")
+    print("  help          - Displays this information")
+    print("  update        - Checks if a new version of encryptbot is available and updates if so")
+    print("  create-domain - Creates a new domain to be managed by encryptbot (use before get-certs and revoke-certs)")
+    print("      Example: encryptbot.py create-domain yourdomain1.com yourdomain2.net")
+    print("  get-certs     - Obtains certificates for the domains specified in [parameters]")
+    print("      Example: encryptbot.py get-certs -f yourdomain1.com yourdomain2.net")
+    print("      Example: encryptbot.py get-certs -a")
+    print("  revoke-certs  - Revokes a domain certificate")
+    print("      Example: encryptbot.py revoke-certs yourdomain1.com")
     print("\nFlags:")
-    print("-a - Obtain certificates for all registered domains")
-    print("-f - Force certificate retrieval ignoring expiry checks (be wary of rate limits)")
+    print("  -a - Obtain certificates for all registered domains")
+    print("  -f - Force certificate retrieval ignoring expiry checks (be wary of rate limits)")
 
 def checkForUpdates(flags, params):
     pass #TODO
