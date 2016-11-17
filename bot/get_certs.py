@@ -11,8 +11,6 @@ def retrieveCertificate(domainName, flags):
         createAccount()
 
 
-
-
 def createAccount():
     # Automatically grab the latest TOS
     le_docs = str(urlopen("https://letsencrypt.org/repository/").read())
@@ -34,7 +32,7 @@ def createAccount():
 | account key.                                                        |
 +---------------------------------------------------------------------+""" % doc)
     sys.stdout.flush()
-    #sleep(15)
+    sleep(15)
     
     global_conf = getGlobalConfig()
     key_algo = global_conf["algorithm"]
@@ -46,9 +44,8 @@ def createAccount():
     print("\n\nGenerating account keypair...")
     sys.stdout.flush()
     
+    folderpath = getDomainsFolder()
     if key_algo == "rsa":
-        openssl.generateRSAkeypair(key_len)
+        openssl.generateRSAkeypair(key_len, folderpath + "account.key")
     else:
-        openssl.generateECkeypair(key_algo)
-    
-    
+        openssl.generateECkeypair(key_algo, folderpath + "account.key")
