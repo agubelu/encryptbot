@@ -3,13 +3,12 @@ from configmanager import getDomainConfig, getGlobalConfig
 from time import sleep
 import sys, os, re
 from urllib.request import urlopen
-import openssl
+import cryptoutils
 
 def retrieveCertificate(domainName, flags):
     
     if not os.path.exists(getDomainsFolder() + "account.key"):
         createAccount()
-
 
 def createAccount():
     # Automatically grab the latest TOS
@@ -38,7 +37,7 @@ def createAccount():
     key_algo = global_conf["algorithm"]
     key_len = global_conf["key_length"]
     
-    if key_algo not in openssl.supported_algorithms:
+    if key_algo not in cryptoutils.supported_algorithms:
         raise Exception("Algorithm %s not supported" % key_algo)
     
     print("\n\nGenerating account keypair...")
@@ -46,6 +45,6 @@ def createAccount():
     
     folderpath = getDomainsFolder()
     if key_algo == "rsa":
-        openssl.generateRSAkeypair(key_len, folderpath + "account.key")
+        cryptoutils.generateRSAkeypair(key_len, folderpath + "account.key")
     else:
-        openssl.generateECkeypair(key_algo, folderpath + "account.key")
+        cryptoutils.generateECkeypair(key_algo, folderpath + "account.key")
