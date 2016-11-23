@@ -56,7 +56,7 @@ def createAccount():
         cryptoutils.generateRSAkeypair(key_len, keyPath)
     else:
         cryptoutils.generateECkeypair(key_algo, keyPath)
-    TODO quitar """    
+    TODO quitar"""
     # Get directory from API server    
     if global_conf["staging"] == "true":
         api_url = STAGING_SERVER_API
@@ -74,8 +74,11 @@ def createAccount():
     else:
         jwkKey = cryptoutils.generateJWK_EC(keyPath)
     
-    reg_query = cryptoutils.generateSignedJWS({"alg":algs_jws[0], "jwk":jwkKey, "nonce":"1234", "url":url_register}, 
-                                              {"terms-of-service-agreed": "true", "contact":{"email":global_conf["email"], "tel":"+12025551212"}}, 
+    #TODO get a valid nonce
+    nonce = "abcde"
+    
+    reg_query = cryptoutils.generateSignedJWS({"alg":algs_jws[0], "jwk":jwkKey, "nonce":nonce, "url":url_register}, 
+                                              {"terms-of-service-agreed": "true", "contact":["mailto:" + global_conf["email"]], "resource": "new-reg"}, 
                                               keyPath, algs_jws[1])
     
     #print(reg_query)

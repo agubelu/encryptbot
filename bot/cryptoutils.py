@@ -1,6 +1,6 @@
 from subprocess import call, check_output, Popen, PIPE
 from base64 import b64encode, b64decode
-import re
+import re, codecs
 
 supported_algorithms = ["rsa", "prime256v1", "secp384r1"]
 
@@ -51,12 +51,12 @@ def generateSignedJWS(header, body, key, hashAlgo):
 # Generates JWK object for RSA keys
 def generateJWK_RSA(key_path):
     jwk = {}
+    pubkey = getPublicKeyRSA(key_path)
+    
     jwk["kty"] = "RSA"
     jwk["alg"] = "RS256"
-    
-    # TODO Extract n and e from RSA key
-    
-    pubkey = getPublicKeyRSA(key_path)
+    jwk["n"] = pubkey["modulus"]
+    jwk["e"] = pubkey["exponent"]
 
     return jwk
 
@@ -69,5 +69,12 @@ def getPublicKeyRSA(key_path):
     regexModulus = "modulus:\s*((?:[0-9a-f]{2}:?\s*)*)"
     modHex = re.search(regexModulus, output).group(1).replace("\n", "").replace(" ", "").replace(":", "")
     regexExp = "publicExponent.*?\(0x(\d*?)\)"
+    expHex = re.search(regexExp, output).group(1)
     
-    #TODO encode hex values in base64url and return them
+    if len(expHex) % 2 == 1:
+        expHex = "0" + expHex
+    
+    modulus = base64toURL(b64encode(codecs.decode(modHex, "hex")).decode("utf-8"))
+    exponent = base64toURL(b64encode(codecs.decode(expHex, "hex")).decode("utf-8"))
+
+    return {"modulus": modulus, "exponent": exponent}
