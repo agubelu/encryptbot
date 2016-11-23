@@ -1,14 +1,19 @@
 from common_utils import getDomainFolder, getDomainsFolder
 from configmanager import getDomainConfig, getGlobalConfig
 from time import sleep
-import sys, os, re
+import sys, os, re, json
 from urllib.request import urlopen
 import cryptoutils
 
+STAGING_SERVER_API = "https://acme-staging.api.letsencrypt.org"
+FULL_SERVER_API = "https://acme-v01.api.letsencrypt.org"
+
 def retrieveCertificate(domainName, flags):
     
-    if not os.path.exists(getDomainsFolder() + "account.key"):
-        createAccount()
+    #if not os.path.exists(getDomainsFolder() + "account.key"):
+    createAccount()
+    
+    #TODO check cert expiry
 
 def createAccount():
     # Automatically grab the latest TOS
@@ -31,12 +36,13 @@ def createAccount():
 | account key.                                                        |
 +---------------------------------------------------------------------+""" % doc)
     sys.stdout.flush()
-    sleep(15)
+    #sleep(15) TODO quitar
     
     global_conf = getGlobalConfig()
     key_algo = global_conf["algorithm"]
     key_len = global_conf["key_length"]
     
+    # Generate account keypair using the desired algorithm
     if key_algo not in cryptoutils.supported_algorithms:
         raise Exception("Algorithm %s not supported" % key_algo)
     
@@ -44,7 +50,34 @@ def createAccount():
     sys.stdout.flush()
     
     folderpath = getDomainsFolder()
-    if key_algo == "rsa":
-        cryptoutils.generateRSAkeypair(key_len, folderpath + "account.key")
+    keyPath = folderpath + "account.key"
+    
+    """if key_algo == "rsa":
+        cryptoutils.generateRSAkeypair(key_len, keyPath)
     else:
-        cryptoutils.generateECkeypair(key_algo, folderpath + "account.key")
+        cryptoutils.generateECkeypair(key_algo, keyPath)
+    TODO quitar """    
+    # Get directory from API server    
+    if global_conf["staging"] == "true":
+        api_url = STAGING_SERVER_API
+    else:
+        api_url = FULL_SERVER_API
+
+    directory = json.loads(urlopen(api_url + "/directory").read().decode("utf-8")) 
+    
+    # Register user account
+    url_register = directory["new-reg"]
+    algs_jws = cryptoutils.jws_algs[key_algo]
+    
+    if key_algo == "rsa":
+        jwkKey = cryptoutils.generateJWK_RSA(keyPath)
+    else:
+        jwkKey = cryptoutils.generateJWK_EC(keyPath)
+    
+    reg_query = cryptoutils.generateSignedJWS({"alg":algs_jws[0], "jwk":jwkKey, "nonce":"1234", "url":url_register}, 
+                                              {"terms-of-service-agreed": "true", "contact":{"email":global_conf["email"], "tel":"+12025551212"}}, 
+                                              keyPath, algs_jws[1])
+    
+    #print(reg_query)
+    
+    
