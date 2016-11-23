@@ -52,11 +52,11 @@ def createAccount():
     folderpath = getDomainsFolder()
     keyPath = folderpath + "account.key"
     
-    """if key_algo == "rsa":
+    if key_algo == "rsa":
         cryptoutils.generateRSAkeypair(key_len, keyPath)
     else:
         cryptoutils.generateECkeypair(key_algo, keyPath)
-    TODO quitar"""
+
     # Get directory from API server    
     if global_conf["staging"] == "true":
         api_url = STAGING_SERVER_API
@@ -68,19 +68,20 @@ def createAccount():
     # Register user account
     url_register = directory["new-reg"]
     algs_jws = cryptoutils.jws_algs[key_algo]
-    
-    if key_algo == "rsa":
-        jwkKey = cryptoutils.generateJWK_RSA(keyPath)
-    else:
-        jwkKey = cryptoutils.generateJWK_EC(keyPath)
+        
+    jwkKey = getJWKkey(keyPath, key_algo)
     
     #TODO get a valid nonce
-    nonce = "abcde"
+    nonce = "placeholder-nonce"
     
     reg_query = cryptoutils.generateSignedJWS({"alg":algs_jws[0], "jwk":jwkKey, "nonce":nonce, "url":url_register}, 
                                               {"terms-of-service-agreed": "true", "contact":["mailto:" + global_conf["email"]], "resource": "new-reg"}, 
                                               keyPath, algs_jws[1])
     
-    #print(reg_query)
+    print(reg_query)
     
-    
+def getJWKkey(key_path, algorithm):
+    if algorithm == "rsa":
+        return cryptoutils.generateJWK_RSA(key_path)
+    else:
+        return cryptoutils.generateJWK_EC(key_path)
