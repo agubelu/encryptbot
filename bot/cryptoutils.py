@@ -2,14 +2,14 @@ from subprocess import call, check_output, Popen, PIPE
 from base64 import b64encode, b64decode
 import re, codecs
 
-supported_algorithms = ["rsa", "prime256v1", "secp384r1"]
-
 # Maps every supported algorithm to their alg parameter in JWS and the hash method used
 jws_algs = {
     "rsa": ("RS256", "sha256"),
     "prime256v1": ("ES256", "sha256"),
     "secp384r1": ("ES384", "sha384")
 }
+
+supported_algorithms = jws_algs.keys()
 
 # Generates an RSA keypair using the selected key length
 def generateRSAkeypair(key_length, location):
@@ -105,13 +105,15 @@ def getPublicKeyEC(key_path):
     output = check_output(("openssl ec -in %s -text -noout" % key_path).split(" ")).decode("utf-8")
     regexCoords = "pub:\s*((?:[0-9a-f]{2}:?\s*)*)"
     coordsHex = re.search(regexCoords, output).group(1).replace("\n", "").replace(" ", "").replace(":", "")[2:] # Exclude the first byte, which does not contain useful information
-    regexCurve = "NIST CURVE:\s*(.*)"
+    regexCurve = "ASN1 OID:\s*(.*)"
     curve = re.search(regexCurve, output).group(1)
+    
+    nistCurve = {"secp384r1": "P-384", "prime256v1": "P-256"}[curve]
     
     x = coordsHex[0:len(coordsHex)//2]
     y = coordsHex[len(coordsHex)//2:]
     
-    return {"x": hexToBase64URL(x), "y": hexToBase64URL(y), "curve": curve}
+    return {"x": hexToBase64URL(x), "y": hexToBase64URL(y), "curve": nistCurve}
 
 def hexToBase64URL(hex):
     return base64toURL(b64encode(codecs.decode(hex, "hex")).decode("utf-8"))
