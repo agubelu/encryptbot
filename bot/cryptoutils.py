@@ -29,12 +29,12 @@ def generateSignature(text, keyPath, hashAlgo):
         ec = "EC" in key.readline()
         
     if not ec: # RSA
-        digest = Popen(command.split(" "), shell=True, stdin=echo.stdout, stdout=PIPE)
-        encoded = check_output("base64 -w 0".split(" "), shell=True, stdin=digest.stdout)
+        digest = Popen(command.split(" "), stdin=echo.stdout, stdout=PIPE)
+        encoded = check_output("base64 -w 0".split(" "), stdin=digest.stdout)
         return encoded.decode("utf-8")
     else: # Elliptic Curve
         command += " -hex"
-        output = check_output(command.split(" "), shell=True, stdin=echo.stdout).decode("utf-8")
+        output = check_output(command.split(" "), stdin=echo.stdout).decode("utf-8")
         hexDigest = re.search("\(stdin\)=\s*([a-f0-9]*)", output).group(1)
         len_r = int(hexDigest[6:8], 16) * 2
         r = hexDigest[8:8+len_r]
@@ -87,7 +87,7 @@ def generateJWK_EC(key_path):
     return jwk
     
 def getPublicKeyRSA(key_path):
-    output = check_output(("openssl rsa -in %s -text -noout" % key_path).split(" "), shell=True).decode("utf-8")
+    output = check_output(("openssl rsa -in %s -text -noout" % key_path).split(" ")).decode("utf-8")
     regexModulus = "modulus:\s*((?:[0-9a-f]{2}:?\s*)*)"
     modHex = re.search(regexModulus, output).group(1).replace("\n", "").replace(" ", "").replace(":", "")
     regexExp = "publicExponent.*?\(0x(\d*?)\)"
@@ -102,7 +102,7 @@ def getPublicKeyRSA(key_path):
     return {"modulus": modulus, "exponent": exponent}
 
 def getPublicKeyEC(key_path):
-    output = check_output(("openssl ec -in %s -text -noout" % key_path).split(" "), shell=True).decode("utf-8")
+    output = check_output(("openssl ec -in %s -text -noout" % key_path).split(" ")).decode("utf-8")
     regexCoords = "pub:\s*((?:[0-9a-f]{2}:?\s*)*)"
     coordsHex = re.search(regexCoords, output).group(1).replace("\n", "").replace(" ", "").replace(":", "")[2:] # Exclude the first byte, which does not contain useful information
     regexCurve = "NIST CURVE:\s*(.*)"
