@@ -1,9 +1,10 @@
-from common_utils import getDomainFolder, getDomainsFolder
+from common_utils import getDomainFolder, getDomainsFolder, getNewNonce, checkRequestStatus
 from configmanager import getDomainConfig, getGlobalConfig
 from time import sleep
 import sys, os, re, json
 from urllib.request import urlopen
 import cryptoutils
+import requests
 
 STAGING_SERVER_API = "https://acme-staging.api.letsencrypt.org"
 FULL_SERVER_API = "https://acme-v01.api.letsencrypt.org"
@@ -56,6 +57,8 @@ def createAccount():
         cryptoutils.generateRSAkeypair(key_len, keyPath)
     else:
         cryptoutils.generateECkeypair(key_algo, keyPath)
+        
+    os.chmod(keyPath, 0o600)
 
     # Get directory from API server    
     if global_conf["staging"] == "true":
@@ -63,25 +66,29 @@ def createAccount():
     else:
         api_url = FULL_SERVER_API
 
-    directory = json.loads(urlopen(api_url + "/directory").read().decode("utf-8")) 
+    directory = requests.get(api_url + "/directory").json()
     
     # Register user account
     url_register = directory["new-reg"]
     algs_jws = cryptoutils.jws_algs[key_algo]
         
     jwkKey = getJWKkey(keyPath, key_algo)
-    
-    #TODO get a valid nonce
-    nonce = "placeholder-nonce"
-    
+    nonce = getNewNonce(api_url)   
     reg_query = cryptoutils.generateSignedJWS({"alg":algs_jws[0], "jwk":jwkKey, "nonce":nonce, "url":url_register}, 
                                               {"terms-of-service-agreed": "true", "contact":["mailto:" + global_conf["email"]], "resource": "new-reg"}, 
                                               keyPath, algs_jws[1])
     
-    print(reg_query)
+    creation_request = requests.post(url_register, data=reg_query)
+    checkRequestStatus(creation_request, 201)
+    creation_response = creation_request.json()
+    key_id = creation_response["id"]
     
+    with open(folderpath + ".key_id", "w") as f:
+        f.write(str(key_id))
+        
 def getJWKkey(key_path, algorithm):
     if algorithm == "rsa":
         return cryptoutils.generateJWK_RSA(key_path)
     else:
         return cryptoutils.generateJWK_EC(key_path)
+    
