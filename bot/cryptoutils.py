@@ -1,6 +1,6 @@
-from subprocess import call, check_output, Popen, PIPE
+from subprocess import call, check_output, Popen, PIPE, CalledProcessError
 from base64 import b64encode, b64decode
-import re, codecs
+import re, codecs, os, shutil
 
 # Maps every supported algorithm to their alg parameter in JWS and the hash method used
 jws_algs = {
@@ -56,8 +56,8 @@ def textToBase64URL(text):
     return base64toURL(toBase64(text))
 
 def generateSignedJWS(header, body, key, hashAlgo):
-    jws_header = textToBase64URL(str(header).replace("'", "\""))
-    jws_body = textToBase64URL(str(body).replace("'", "\""))
+    jws_header = textToBase64URL(str(header).replace("'", "\"").replace("True", "true"))
+    jws_body = textToBase64URL(str(body).replace("'", "\"").replace("True", "true"))
     jws = jws_header + "." + jws_body
     signature = base64toURL(generateSignature(jws, key, hashAlgo))
     return str({"protected": jws_header, "payload": jws_body, "signature": signature}).replace("'", "\"")
@@ -104,9 +104,9 @@ def getPublicKeyRSA(key_path):
 def getPublicKeyEC(key_path):
     output = check_output(("openssl ec -in %s -text -noout" % key_path).split(" ")).decode("utf-8")
     regexCoords = "pub:\s*((?:[0-9a-f]{2}:?\s*)*)"
-    coordsHex = re.search(regexCoords, output).group(1).replace("\n", "").replace(" ", "").replace(":", "")[2:] # Exclude the first byte, which does not contain useful information
+    coordsHex = re.search(regexCoords, output).group(1).replace("\r", "").replace("\n", "").replace(" ", "").replace(":", "")[2:] # Exclude the first byte, which does not contain useful information
     regexCurve = "ASN1 OID:\s*(.*)"
-    curve = re.search(regexCurve, output).group(1)
+    curve = re.search(regexCurve, output).group(1).rstrip()
     
     nistCurve = {"secp384r1": "P-384", "prime256v1": "P-256"}[curve]
     
@@ -117,3 +117,22 @@ def getPublicKeyEC(key_path):
 
 def hexToBase64URL(hex):
     return base64toURL(b64encode(codecs.decode(hex, "hex")).decode("utf-8"))
+
+def generateCSR(key, primary_name, alternative_names):
+    path_config_file = os.path.dirname(key) + "/../../bot/csr.cnf"
+    path_temp_file = os.path.dirname(key) + "/.tmp_conf"
+    
+    shutil.copyfile(path_config_file, path_temp_file)
+    appendLine = "subjectAltName = DNS:" + primary_name + "".join([",DNS:%s" % dom for dom in alternative_names])
+    with open(path_temp_file, "a") as f:
+        f.write(appendLine)
+        
+    gen_command = "openssl req -new -sha256 -key %s -subj \"/\" -reqexts SAN -config %s" % (os.path.normpath(key), os.path.normpath(path_temp_file))
+    output = check_output(gen_command)
+    os.remove(path_temp_file)
+
+    lines = output.decode("utf-8").split("\n")
+    csr = "".join([line.strip() for line in lines if line != "" and line[0:5] != "-----"])
+    return base64toURL(csr)
+    
+    

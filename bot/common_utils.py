@@ -8,7 +8,7 @@ def getDomainsFolder():
     return getWorkingFolder() + "../domains/"
 
 def getDomainFolder(domainName):
-    return getDomainsFolder() + domainName
+    return getDomainsFolder() + domainName + "/"
 
 def getNewNonce(api_url):
     req = requests.get(api_url + "/directory")
