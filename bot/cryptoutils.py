@@ -119,13 +119,13 @@ def hexToBase64URL(hex):
     return base64toURL(b64encode(codecs.decode(hex, "hex")).decode("utf-8"))
 
 def generateCSR(key, primary_name, alternative_names):
-    path_config_file = os.path.dirname(key) + "/../../bot/csr.cnf"
     path_temp_file = os.path.dirname(key) + "/.tmp_conf"
-    
-    shutil.copyfile(path_config_file, path_temp_file)
     appendLine = "subjectAltName = DNS:" + primary_name + "".join([",DNS:%s" % dom for dom in alternative_names])
-    with open(path_temp_file, "a") as f:
-        f.write(appendLine)
+    with open(path_temp_file, "w") as f:
+        f.write("""[ req ]
+distinguished_name = req_distinguished_name
+[ req_distinguished_name ]
+[ SAN ]\n""" + appendLine)
         
     gen_command = "openssl req -new -sha256 -key %s -subj \"/\" -reqexts SAN -config %s" % (os.path.normpath(key), os.path.normpath(path_temp_file))
     output = check_output(gen_command)

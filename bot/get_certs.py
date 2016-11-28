@@ -62,8 +62,8 @@ def retrieveCertificate(domainName, flags):
     reg_query = cryptoutils.generateSignedJWS({"alg":algs_jws[0], "jwk":jwkAccountKey, "nonce":nonce, "url":url_request_cert}, 
                                               {"csr":csr, "resource": "new-cert"}, 
                                               account_key, algs_jws[1])
-    print(reg_query)
-    print(url_request_cert)
+    
+    
 def createAccount():
     # Automatically grab the latest TOS
     le_docs = str(urlopen("https://letsencrypt.org/repository/").read())
@@ -85,7 +85,7 @@ def createAccount():
 | account key.                                                        |
 +---------------------------------------------------------------------+""" % doc)
     sys.stdout.flush()
-    #TODO sleep(10)
+    sleep(10)
     
     global_conf = getGlobalConfig()
     key_algo = global_conf["algorithm"]
