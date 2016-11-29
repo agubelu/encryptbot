@@ -11,7 +11,10 @@ FULL_SERVER_API = "https://acme-v01.api.letsencrypt.org"
 
 def retrieveCertificate(domainName, flags):
     
-    if not os.path.exists(getDomainsFolder() + "account.key"):
+    domains_folder = getDomainsFolder()
+    
+    # Create account if it doesn't exist yet
+    if not os.path.exists(domains_folder + "account.key"):
         createAccount()
         
     print("Checking domain %s" % domainName)
@@ -23,6 +26,7 @@ def retrieveCertificate(domainName, flags):
     key_algo = domain_conf["algorithm"]
     key_len = domain_conf["key_length"]
     
+    # Generate account keypair if it doesn't exist
     if not os.path.exists(domain_key_path):
         print("Domain keypair not found, creating a new one")
         sys.stdout.flush()
@@ -32,36 +36,58 @@ def retrieveCertificate(domainName, flags):
             cryptoutils.generateECkeypair(key_algo, domain_key_path)
         os.chmod(domain_key_path, 0o600)
         
-    domain_alt_names = domain_conf["alternative_names"].split(" ")
+    # Get primary and alternative names for domain, and check that there is a web root for each name
+    domain_names = [domainName] + domain_conf["alternative_names"].split(" ")
     domain_web_roots = domain_conf["web_roots"].split(" ")
     
-    if(len(domain_alt_names) != len(domain_web_roots) - 1):
+    if(len(domain_names) != len(domain_web_roots)):
         print("Error: there must be one web root for each alt. name and one for the primary name")
         print("Skipping domain...")
         return
     
-    # Generate CSR
-    csr = cryptoutils.generateCSR(domain_key_path, domainName, domain_alt_names)
-    
-     # Get directory from API server    
+    # Get directory from API server    
     if domain_conf["staging"] == "true":
         api_url = STAGING_SERVER_API
     else:
         api_url = FULL_SERVER_API
         
     directory = requests.get(api_url + "/directory").json()
-    url_request_cert = directory["new-cert"]
+    url_request_auth = directory["new-authz"]
     nonce = getNewNonce(api_url)
     
-    with open(getDomainsFolder() + ".key_id") as f:
-        keyID = f.read()
-        
-    account_key = getDomainsFolder() + "account.key"
-    algs_jws = cryptoutils.jws_algs[getGlobalConfig()["algorithm"]]
-    jwkAccountKey = getJWKkey(account_key, key_algo)
-    reg_query = cryptoutils.generateSignedJWS({"alg":algs_jws[0], "jwk":jwkAccountKey, "nonce":nonce, "url":url_request_cert}, 
-                                              {"csr":csr, "resource": "new-cert"}, 
+    # Complete HTTP challenge for each domain name
+    account_key = domains_folder + "account.key"
+    global_conf = getGlobalConfig()
+    global_key_algo = global_conf["algorithm"]
+    algs_jws = cryptoutils.jws_algs[global_key_algo]
+    jwkAccountKey = getJWKkey(account_key, global_key_algo)
+    keyThumbprint = cryptoutils.generateKeyThumbprint(jwkAccountKey)
+    
+    for i in range(len(domain_names)):
+        name = domain_names[i]
+        root_path = domain_web_roots[i]
+        print("Obtaining authorization for domain %s" % name)
+    
+        auth_query = cryptoutils.generateSignedJWS({"alg":algs_jws[0], "jwk":jwkAccountKey, "nonce":nonce, "url":url_request_auth}, 
+                                              {"identifier":{"type":"dns", "value":name}, "existing":"accept", "resource": "new-authz"}, 
                                               account_key, algs_jws[1])
+        
+        auth_request = requests.post(url_request_auth, data=auth_query)
+        checkRequestStatus(auth_request, 201)
+        nonce = auth_request.headers["Replay-Nonce"]
+        
+        try:
+            challenge = [ch for ch in auth_request.json()["challenges"] if ch["type"] == "http-01"][0]
+        except:
+            # This shouldn't happen...
+            print("It looks like Let's Encrypt is not accepting HTTP challenges...")
+            return
+        
+        challenge_url = challenge["uri"]
+        challenge_token = challenge["token"]
+        
+    # Generate CSR
+    #csr = cryptoutils.generateCSR(domain_key_path, domainName, domain_alt_names)
     
     
 def createAccount():
@@ -128,11 +154,15 @@ def createAccount():
     
     creation_request = requests.post(url_register, data=reg_query)
     checkRequestStatus(creation_request, 201)
+    
+    # Apparently LE doesn't support authorization by key id...
+    # I'll just leave this here in case they do in the future
+    """
     creation_response = creation_request.json()
     key_id = creation_response["id"]
-    
     with open(folderpath + ".key_id", "w") as f:
         f.write(str(key_id))
+    """
         
     print("Account created successfully")
         

@@ -1,6 +1,7 @@
-from subprocess import call, check_output, Popen, PIPE, CalledProcessError
-from base64 import b64encode, b64decode
-import re, codecs, os, shutil
+from subprocess import call, check_output, Popen, PIPE
+from base64 import b64encode
+import re, codecs, os
+from hashlib import sha256
 
 # Maps every supported algorithm to their alg parameter in JWS and the hash method used
 jws_algs = {
@@ -135,4 +136,10 @@ distinguished_name = req_distinguished_name
     csr = "".join([line.strip() for line in lines if line != "" and line[0:5] != "-----"])
     return base64toURL(csr)
     
+def generateKeyThumbprint(jwk):
+    if jwk["kty"] == "RSA":
+        text = '{"e":"%s","kty":"RSA","n":"%s"}' % (jwk["e"], jwk["n"])
+    else:
+        text = '{"crv":"%s","kty":"EC","x":"%s","y":"%s"}' % (jwk["crv"], jwk["x"], jwk["y"])
     
+    return hexToBase64URL(sha256(text.encode('utf-8')).hexdigest())
