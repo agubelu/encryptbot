@@ -91,6 +91,7 @@ def getPublicKeyRSA(key_path):
     output = check_output(("openssl rsa -in %s -text -noout" % key_path).split(" ")).decode("utf-8")
     regexModulus = "modulus:\s*((?:[0-9a-f]{2}:?\s*)*)"
     modHex = re.search(regexModulus, output).group(1).replace("\n", "").replace(" ", "").replace(":", "")
+    if modHex[0:2] == "00": modHex = modHex[2:]
     regexExp = "publicExponent.*?\(0x(\d*?)\)"
     expHex = re.search(regexExp, output).group(1)
     
@@ -103,7 +104,7 @@ def getPublicKeyRSA(key_path):
     return {"modulus": modulus, "exponent": exponent}
 
 def getPublicKeyEC(key_path):
-    output = check_output(("openssl ec -in %s -text -noout" % key_path).split(" ")).decode("utf-8")
+    output = check_output(("openssl ec -in %s -text -noout" % key_path).split(" "), stderr=PIPE).decode("utf-8")
     regexCoords = "pub:\s*((?:[0-9a-f]{2}:?\s*)*)"
     coordsHex = re.search(regexCoords, output).group(1).replace("\r", "").replace("\n", "").replace(" ", "").replace(":", "")[2:] # Exclude the first byte, which does not contain useful information
     regexCurve = "ASN1 OID:\s*(.*)"
@@ -116,12 +117,13 @@ def getPublicKeyEC(key_path):
     
     return {"x": hexToBase64URL(x), "y": hexToBase64URL(y), "curve": nistCurve}
 
-def hexToBase64URL(hex):
-    return base64toURL(b64encode(codecs.decode(hex, "hex")).decode("utf-8"))
+def hexToBase64URL(hexDump):
+    return base64toURL(b64encode(codecs.decode(hexDump, "hex")).decode("utf-8"))
 
-def generateCSR(key, primary_name, alternative_names):
+def generateCSR(key, domain_names):
     path_temp_file = os.path.dirname(key) + "/.tmp_conf"
-    appendLine = "subjectAltName = DNS:" + primary_name + "".join([",DNS:%s" % dom for dom in alternative_names])
+    primary_name = domain_names[0]
+    appendLine = "subjectAltName = DNS:" + primary_name + "".join([",DNS:%s" % dom for dom in domain_names])
     with open(path_temp_file, "w") as f:
         f.write("""[ req ]
 distinguished_name = req_distinguished_name

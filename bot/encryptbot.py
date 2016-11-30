@@ -1,6 +1,6 @@
-import sys, shutil
-from configmanager import *
-from common_utils import *
+import sys, shutil, os
+from configmanager import generateDomainConfigFile
+from common_utils import getWorkingFolder, getDomainsFolder, getDomainFolder
 from get_certs import retrieveCertificate
 
 workingFolder = getWorkingFolder()
@@ -27,7 +27,7 @@ def displayHelp(flags, params):
     print("  -f - Force certificate retrieval ignoring expiry checks (be wary of rate limits)")
 
 def checkForUpdates(flags, params):
-    pass #TODO
+    pass #TODO: hacer
 
 def getCertificates(flags, params):
     registeredDomains = next(os.walk(domainsFolder))[1]
@@ -45,7 +45,7 @@ def getCertificates(flags, params):
         retrieveCertificate(dom, flags)
 
 def revokeCertificates(flags, params):
-    pass #TODO
+    pass #TODO: hacer
 
 def createDomainFolder(flags, params):
     for domain in params:
