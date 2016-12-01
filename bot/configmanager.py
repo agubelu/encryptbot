@@ -27,7 +27,7 @@ def generateDomainConfigFile(domain):
 def getGlobalConfig():
     res = {}
     with open(getDomainsFolder() + "common.cfg", "r", "utf-8") as config:
-        for line in [l for l in config.readlines() if l[0] != "#" and l[0] != "\n"]:
+        for line in [l for l in config.readlines() if l[0] != "#" and l[0] != "\n" and l[0] != "\r"]:
             matches = re.match("(.*?)\s*=\s*\"(.*?)\"", line)
             key = matches.group(1)
             val = matches.group(2)
@@ -37,7 +37,7 @@ def getGlobalConfig():
 def getDomainConfig(domainName):
     res = getGlobalConfig()
     with open(getDomainFolder(domainName) + "domain.cfg", "r", "utf-8") as config:
-        for line in [l for l in config.readlines() if l[0] != "#" and l[0] != "\n"]:
+        for line in [l for l in config.readlines() if l[0] != "#" and l[0] != "\n" and l[0] != "\r"]:
             matches = re.match("\s*(.*?)\s*=\s*\"(.*?)\"", line)
             key = matches.group(1)
             val = matches.group(2)
