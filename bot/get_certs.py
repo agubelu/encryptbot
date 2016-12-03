@@ -1,8 +1,11 @@
-from common_utils import getDomainFolder, getDomainsFolder, getNewNonce, checkRequestStatus
-from configmanager import getDomainConfig, getGlobalConfig
-from time import sleep
-import sys, os, re
+from common_utils   import getDomainFolder, getDomainsFolder, getNewNonce, checkRequestStatus
+from configmanager  import getDomainConfig, getGlobalConfig
+from time           import sleep
+from base64         import b64encode
 from urllib.request import urlopen
+from shutil         import copyfile
+
+import sys, os, re, subprocess
 import cryptoutils
 import requests
 
@@ -10,7 +13,7 @@ STAGING_SERVER_API = "https://acme-staging.api.letsencrypt.org"
 FULL_SERVER_API = "https://acme-v01.api.letsencrypt.org"
 
 DOMAIN_CHALLENGE_RETRY_INTERVAL = 3 # Seconds
-DOMAIN_CHALLENGE_MAX_RETRIES = 8
+DOMAIN_CHALLENGE_MAX_RETRIES = 810
 
 def retrieveCertificate(domainName, flags):
     
@@ -32,7 +35,7 @@ def retrieveCertificate(domainName, flags):
     
     # Generate domain keypair if it doesn't exist
     if not os.path.exists(domain_key_path):
-        print("Domain keypair not found, creating a new one")
+        print("Domain keypair not found, creating a new one\n")
         sys.stdout.flush()
         if key_algo == "rsa":
             cryptoutils.generateRSAkeypair(key_len, domain_key_path)
@@ -98,7 +101,7 @@ def retrieveCertificate(domainName, flags):
             return
         
         if challenge["status"] == "valid":
-            print("Domain %s is already validated" % name)
+            print("Domain %s is already validated\n" % name)
             continue
         
         challenge_url = challenge["uri"]
@@ -129,11 +132,11 @@ def retrieveCertificate(domainName, flags):
         nonce = challenge_request.headers["Replay-Nonce"]
         
         def challengeOK():
-            print("Domain %s successfully validated" % name)
+            print("Domain %s successfully validated\n" % name)
             os.remove(token_path)
             
         def challengeFailed(req):
-            print("Could not validate domain %s" % name)
+            print("Could not validate domain %s\n" % name)
             print(req.content.decode("utf-8"))
             os.remove(token_path)
             
@@ -184,16 +187,53 @@ def retrieveCertificate(domainName, flags):
     cert_request = requests.post(request_cert_url, data=cert_query)
     checkRequestStatus(cert_request, 201)
     
+    domain_cert_base64 = b64encode(cert_request.content).decode("utf-8")
     certPath = getDomainFolder(domainName) + domainName + ".crt"
-    print("Writing %s" % domainName + ".crt")
+    print("Writing " + domainName + ".crt")
+    sys.stdout.flush()
     
     # Save certificate to domain folder
-    with open(certPath, "wb") as cert:
-        cert.write(cert_request.content)
+    with open(certPath, "w") as cert:
+        cert.writelines(b64toCert(domain_cert_base64))
+        
+    # Get the chain
+    chain_location = cryptoutils.getCertChainLocation(certPath)
+    chain_request = requests.get(chain_location)
+    chain_cert_base64 = b64encode(chain_request.content).decode("utf-8")
+    chain = b64toCert(chain_cert_base64)
+    
+    if domain_conf["chained_certs"] == "true":
+        # Concatenate chain to the cert
+        with open(certPath, "a") as cert:
+            cert.writelines(chain)
+    else:
+        # Write chain to another file
+        print("Writing chain.crt")
+        sys.stdout.flush()
+        with open(getDomainFolder(domainName) + "chain.crt", "w") as ch:
+            ch.writelines(chain)
+            
+            
+    # Copy cert and key to the desired location
+    folder_copy_cert = domain_conf["folder_copy_cert"]
+    if len(folder_copy_cert) > 0:
+        print("\nCopying cert to %s" % folder_copy_cert)
+        sys.stdout.flush()
+        copyfile(certPath, folder_copy_cert + "/%s.crt" % domainName)
+        
+    folder_copy_key = domain_conf["folder_copy_key"]
+    if len(folder_copy_key) > 0:
+        print("Copying key to %s" % folder_copy_key)
+        sys.stdout.flush()
+        copyfile(domain_key_path, folder_copy_key + "/%s.key" % domainName)
+        
+    command = domain_conf["after_command"]
+    if len(command) > 0:
+        subprocess.call(command.split(" "), shell=True)
     
     
 def createAccount(auto=False, alt_api_url=None):
-    
+
     global_conf = getGlobalConfig()
     key_algo = global_conf["algorithm"]
     key_len = global_conf["key_length"]
@@ -280,4 +320,13 @@ def getJWKkey(key_path, algorithm):
         return cryptoutils.generateJWK_RSA(key_path)
     else:
         return cryptoutils.generateJWK_EC(key_path)
+    
+def b64toCert(b64):
+    cert_lines = ["-----BEGIN CERTIFICATE-----\n"]
+    for i in range(len(b64) // 64 + 1):
+        line = b64[i*64 : min(len(b64), i*64 + 64)]
+        if len(line) == 0: break
+        cert_lines.append(line + "\n")
+    cert_lines.append("-----END CERTIFICATE-----\n")
+    return cert_lines
     

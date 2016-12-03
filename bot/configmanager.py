@@ -1,6 +1,7 @@
-from common_utils import getWorkingFolder, getDomainsFolder, getDomainFolder
+from common_utils   import getWorkingFolder, getDomainsFolder, getDomainFolder
+from codecs         import open
 import re
-from codecs import open
+
 
 def generateDomainConfigFile(domain):
     with open(getWorkingFolder() + "default_config.cfg", "r", "utf-8") as def_config:
@@ -28,7 +29,7 @@ def getGlobalConfig():
     res = {}
     with open(getDomainsFolder() + "common.cfg", "r", "utf-8") as config:
         for line in [l for l in config.readlines() if l[0] != "#" and l[0] != "\n" and l[0] != "\r"]:
-            matches = re.match("(.*?)\s*=\s*\"(.*?)\"", line)
+            matches = re.match("(.*)\s*=\s*\"(.*)\"", line)
             key = matches.group(1)
             val = matches.group(2)
             res[key] = val
@@ -38,7 +39,7 @@ def getDomainConfig(domainName):
     res = getGlobalConfig()
     with open(getDomainFolder(domainName) + "domain.cfg", "r", "utf-8") as config:
         for line in [l for l in config.readlines() if l[0] != "#" and l[0] != "\n" and l[0] != "\r"]:
-            matches = re.match("\s*(.*?)\s*=\s*\"(.*?)\"", line)
+            matches = re.match("\s*(.*)\s*=\s*\"(.*)\"", line)
             key = matches.group(1)
             val = matches.group(2)
             res[key] = val

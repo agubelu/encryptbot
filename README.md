@@ -8,9 +8,9 @@ Still under development, not functional yet.
 - Certificate obtainment [WIP]
   - Account registration [✓]
   - Domain challenges completion [✓]
-  - Certificate retrieval [WIP]
-  - Chain retrieval
-  - Certificate expiry check
+  - Certificate retrieval [✓]
+  - Chain retrieval [✓]
+  - Certificate expiry check [WIP]
 - Certificate revocation
 - Client auto-updater
 - Test suite

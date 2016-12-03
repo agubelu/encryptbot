@@ -1,7 +1,8 @@
-from subprocess import call, check_output, Popen, PIPE
-from base64 import b64encode
+from subprocess     import call, check_output, Popen, PIPE
+from base64         import b64encode
+from hashlib        import sha256
+
 import re, codecs, os
-from hashlib import sha256
 
 # Maps every supported algorithm to their alg parameter in JWS and the hash method used
 jws_algs = {
@@ -130,13 +131,18 @@ distinguished_name = req_distinguished_name
 [ req_distinguished_name ]
 [ SAN ]\n""" + appendLine)
         
-    gen_command = "openssl req -new -sha256 -key %s -subj \"/\" -reqexts SAN -config %s" % (os.path.normpath(key), os.path.normpath(path_temp_file))
-    output = check_output(gen_command)
+    gen_command = "openssl req -new -sha256 -key %s -subj / -reqexts SAN -config %s" % (os.path.normpath(key), os.path.normpath(path_temp_file))
+    output = check_output(gen_command.split(" "))
     os.remove(path_temp_file)
 
     lines = output.decode("utf-8").split("\n")
     csr = "".join([line.strip() for line in lines if line != "" and line[0:5] != "-----"])
     return base64toURL(csr)
+
+def getCertChainLocation(cert_path):
+    command = "openssl x509 -in %s -text -noout" % cert_path
+    output = check_output(command.split(" ")).decode("utf-8")
+    return re.search("CA Issuers - URI:(.*?)\s", output).group(1)
     
 def generateKeyThumbprint(jwk):
     if jwk["kty"] == "RSA":
