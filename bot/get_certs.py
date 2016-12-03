@@ -1,9 +1,10 @@
-from common_utils   import getDomainFolder, getDomainsFolder, getNewNonce, checkRequestStatus
-from configmanager  import getDomainConfig, getGlobalConfig
-from time           import sleep
-from base64         import b64encode
-from urllib.request import urlopen
-from shutil         import copyfile
+from common_utils       import getDomainFolder, getDomainsFolder, getNewNonce, checkRequestStatus
+from configmanager      import getDomainConfig, getGlobalConfig
+from time               import sleep
+from base64             import b64encode
+from urllib.request     import urlopen
+from shutil             import copyfile
+from datetime           import datetime
 
 import sys, os, re, subprocess
 import cryptoutils
@@ -13,22 +14,32 @@ STAGING_SERVER_API = "https://acme-staging.api.letsencrypt.org"
 FULL_SERVER_API = "https://acme-v01.api.letsencrypt.org"
 
 DOMAIN_CHALLENGE_RETRY_INTERVAL = 3 # Seconds
-DOMAIN_CHALLENGE_MAX_RETRIES = 810
+DOMAIN_CHALLENGE_MAX_RETRIES = 10
 
 def retrieveCertificate(domainName, flags):
     
     domains_folder = getDomainsFolder()
+    domain_conf = getDomainConfig(domainName)
     
     # Create account if it doesn't exist yet
     if not os.path.exists(domains_folder + "account.key"):
         createAccount()
     
-    #TODO: check cert expiry
+    # Check cert expiry
+    certPath = getDomainFolder(domainName) + domainName + ".crt"
+    if "-f" not in flags and os.path.exists(certPath):
+        cert_expiry_time = cryptoutils.getCertExpiry(certPath)
+        now = datetime.utcnow()
+        minTime = int(domain_conf["renewal_time"])
+        diff = (cert_expiry_time - now).days
+        
+        if diff > minTime:
+            print("Certificate for %s is still valid for %d more days" % (domainName, diff))
+            return
     
     print("Obtaining certificate for domain %s\n" % domainName)
     sys.stdout.flush()
     
-    domain_conf = getDomainConfig(domainName)
     domain_key_path = getDomainFolder(domainName) + domainName + ".key"
     key_algo = domain_conf["algorithm"]
     key_len = domain_conf["key_length"]
@@ -188,7 +199,6 @@ def retrieveCertificate(domainName, flags):
     checkRequestStatus(cert_request, 201)
     
     domain_cert_base64 = b64encode(cert_request.content).decode("utf-8")
-    certPath = getDomainFolder(domainName) + domainName + ".crt"
     print("Writing " + domainName + ".crt")
     sys.stdout.flush()
     
@@ -227,6 +237,7 @@ def retrieveCertificate(domainName, flags):
         sys.stdout.flush()
         copyfile(domain_key_path, folder_copy_key + "/%s.key" % domainName)
         
+    # Execute the user command
     command = domain_conf["after_command"]
     if len(command) > 0:
         subprocess.call(command.split(" "), shell=True)

@@ -1,6 +1,7 @@
 from subprocess     import call, check_output, Popen, PIPE
 from base64         import b64encode
 from hashlib        import sha256
+from datetime       import datetime
 
 import re, codecs, os
 
@@ -143,6 +144,14 @@ def getCertChainLocation(cert_path):
     command = "openssl x509 -in %s -text -noout" % cert_path
     output = check_output(command.split(" ")).decode("utf-8")
     return re.search("CA Issuers - URI:(.*?)\s", output).group(1)
+
+def getCertExpiry(cert_path):
+    command = "openssl x509 -in %s -text -noout" % cert_path
+    output = check_output(command.split(" ")).decode("utf-8")
+    regex_time = "Not After\s*:\s*([a-zA-Z]*)\s*(\d{1,2})\s*(\d{1,2}):(\d{1,2}):(\d{1,2})\s(\d{4}).*?GMT"
+    m = re.search(regex_time, output)
+    months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+    return datetime(int(m.group(6)), months.index(m.group(1).lower()) + 1, int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)))
     
 def generateKeyThumbprint(jwk):
     if jwk["kty"] == "RSA":

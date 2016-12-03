@@ -5,12 +5,12 @@
 Still under development, not functional yet.
 
 # to-do
-- Certificate obtainment [WIP]
+- Certificate obtainment [✓]
   - Account registration [✓]
   - Domain challenges completion [✓]
   - Certificate retrieval [✓]
   - Chain retrieval [✓]
-  - Certificate expiry check [WIP]
-- Certificate revocation
+  - Certificate expiry check [✓]
+- Certificate revocation [WIP]
 - Client auto-updater
 - Test suite
