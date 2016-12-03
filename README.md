@@ -14,3 +14,4 @@ Still under development, not functional yet.
 - Certificate revocation [WIP]
 - Client auto-updater
 - Test suite
+- Proper README
