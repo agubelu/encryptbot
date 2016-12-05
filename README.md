@@ -11,7 +11,7 @@ Still under development, not functional yet.
   - Certificate retrieval [✓]
   - Chain retrieval [✓]
   - Certificate expiry check [✓]
-- Certificate revocation [WIP]
-- Client auto-updater
+- Certificate revocation [✓]
+- Client auto-updater [WIP]
 - Test suite
 - Proper README

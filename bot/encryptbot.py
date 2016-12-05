@@ -1,5 +1,5 @@
 from common_utils   import getWorkingFolder, getDomainsFolder, getDomainFolder, generateDomainConfigFile
-from certs          import retrieveCertificate
+from certs          import retrieveCertificate, revokeCertificate
 
 import sys, shutil, os
 
@@ -23,8 +23,9 @@ def displayHelp(flags, params):
     print("  revoke-certs  - Revokes a domain certificate")
     print("      Example: encryptbot.py revoke-certs yourdomain1.com")
     print("\nFlags:")
-    print("  -a - Obtain certificates for all registered domains")
+    print("  -a - Select all registered domains")
     print("  -f - Force certificate retrieval ignoring expiry checks (be wary of rate limits)")
+    print("  -d - Delete certificate(s) after a successful revocation")
 
 def checkForUpdates(flags, params):
     pass #TODO: hacer
@@ -41,11 +42,27 @@ def getCertificates(flags, params):
         if dom not in registeredDomains:
             print("Domain %s is not found, skipping..." % dom)
             continue
-        
         retrieveCertificate(dom, flags)
 
 def revokeCertificates(flags, params):
-    pass #TODO: hacer
+    registeredDomains = next(os.walk(domainsFolder))[1]
+    
+    if "-a" in flags:
+        print("You are about to revoke ALL of your certificates!")
+        sys.stdout.flush()
+        conf = input("Do you wish to continue? [y/N]:")
+        
+        if conf.lower() != "y": return
+        domains = registeredDomains
+    else:
+        domains = params
+        
+    for dom in domains:
+        if dom not in registeredDomains:
+            print("Domain %s is not found, skipping..." % dom)
+            continue
+        revokeCertificate(dom, flags)
+        
 
 def createDomainFolder(flags, params):
     for domain in params:

@@ -240,7 +240,85 @@ def retrieveCertificate(domainName, flags):
     command = domain_conf["after_command"]
     if len(command) > 0:
         subprocess.call(command.split(" "), shell=True)
+        
+def revokeCertificate(domainName, flags):
     
+    domain_conf = getDomainConfig(domainName)
+    
+    # Get directory from API server    
+    if domain_conf["staging"] == "true":
+        api_url = STAGING_SERVER_API
+    else:
+        api_url = FULL_SERVER_API
+    
+    directory = requests.get(api_url + "/directory").json()
+    revoke_cert_url = directory["revoke-cert"]
+    
+    domain_folder = getDomainFolder(domainName)
+    domains_folder = getDomainsFolder()
+    
+    # Check that the cert exists
+    cert_path = domain_folder + domainName + ".crt"
+    if not os.path.exists(cert_path):
+        print("Couldn't find the certificate for %s" % domainName)
+        print("Let's Encrypt requires that the certificate itself be sent in order to revoke it.")
+        return
+    
+    # Check that either the cert key or the account key exist
+    if os.path.exists(domain_folder + domainName + ".key"):
+        key_path = domain_folder + domainName + ".key"
+        key_algo = domain_conf["algorithm"]
+        using_account_key = False
+    elif os.path.exists(domains_folder + "account.key"):
+        key_path = domains_folder + "account.key"
+        key_algo = getGlobalConfig()["algorithm"]
+        using_account_key = True
+    else:
+        print("Couldn't find neither the certificate key nor the account key!")
+        print("Cannot revoke a certificate without either.")
+        return
+    
+    # Read and format the cert
+    
+    with open(cert_path, "r") as cert:
+        cert_content = cert.readlines()
+        
+    cert_base64url = ""
+    for line in cert_content:
+        if line.startswith("-----BEGIN CERTIFICATE-----"): continue
+        elif line.startswith("-----END CERTIFICATE-----"): break # Breaking also allows to parse chained certs this way
+        cert_base64url += cryptoutils.base64toURL(line.rstrip())
+        
+    algs_jws = cryptoutils.jws_algs[key_algo]
+    jwkAccountKey = getJWKkey(key_path, key_algo)
+    revoke_query = cryptoutils.generateSignedJWS({"alg":algs_jws[0], "jwk":jwkAccountKey, "nonce":getNewNonce(api_url), "url":revoke_cert_url}, 
+                                              {"certificate":cert_base64url, "resource":"revoke-cert"}, 
+                                              key_path, algs_jws[1])
+    
+    print("Requesting revocation for %s.crt" % domainName)
+    sys.stdout.flush()
+    
+    revocation_request = requests.post(revoke_cert_url, data=revoke_query)
+    status = revocation_request.status_code
+    
+    if status == 200:
+        print("%s.crt successfully revoked" % domainName)
+        if "-d" in flags:
+            os.remove(cert_path)
+            print("Deleted %s.crt" % domainName)
+    elif status == 409:
+        print("%s.crt has already been revoked!" % domainName)
+    elif status == 403:
+        print("Could not revoke %s.crt" % domainName)
+        if using_account_key:
+            print("Is the account key the same that was used to create the certificate?")
+        else:
+            print("Is the certificate key correct?")
+    else:
+        # Unexpected HTTP code
+        print("Unexpected response: HTTP status %d", status)
+        print(revocation_request.content.decode("utf-8"))
+        
     
 def createAccount(auto=False, alt_api_url=None):
 
