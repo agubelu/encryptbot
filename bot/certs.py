@@ -1,5 +1,4 @@
-from common_utils       import getDomainFolder, getDomainsFolder, getNewNonce, checkRequestStatus
-from configmanager      import getDomainConfig, getGlobalConfig
+from common_utils       import getDomainFolder, getDomainsFolder, getNewNonce, checkRequestStatus, getDomainConfig, getGlobalConfig
 from time               import sleep
 from base64             import b64encode
 from urllib.request     import urlopen
@@ -164,7 +163,7 @@ def retrieveCertificate(domainName, flags):
                         break
                     elif i == DOMAIN_CHALLENGE_MAX_RETRIES - 1:
                         # If we've reached here, max polling attempts have been reached
-                        print("Maximum polling attempts for challenge status reached")
+                        print("Maximum timeout for challenge reached")
                         print("Please check that the token can be reached at the following URL:")
                         print("http://%s/.well-known/acme-challenge/%s" % (name, challenge_token))
                         return
@@ -324,7 +323,8 @@ def createAccount(auto=False, alt_api_url=None):
         f.write(str(key_id))
     """
         
-    print("Account created successfully\n")
+    print("Account successfully registered\n")
+    sys.stdout.flush()
         
 def getJWKkey(key_path, algorithm):
     if algorithm == "rsa":

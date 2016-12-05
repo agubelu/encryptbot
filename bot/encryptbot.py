@@ -1,6 +1,5 @@
-from configmanager  import generateDomainConfigFile
-from common_utils   import getWorkingFolder, getDomainsFolder, getDomainFolder
-from get_certs      import retrieveCertificate
+from common_utils   import getWorkingFolder, getDomainsFolder, getDomainFolder, generateDomainConfigFile
+from certs          import retrieveCertificate
 
 import sys, shutil, os
 
