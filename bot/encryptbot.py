@@ -3,6 +3,8 @@ from certs          import retrieveCertificate, revokeCertificate
 
 import sys, shutil, os
 
+VERSION = "0.1"
+
 workingFolder = getWorkingFolder()
 domainsFolder = getDomainsFolder()
 
